@@ -1,0 +1,53 @@
+# Python Bytecode Files
+*.pyc
+*.pyo
+__pycache__/
+
+# Django specific
+*.log
+*.pot
+*.pyc
+*.db
+*.sqlite3
+*.bak
+*.swp
+*.swo
+*.idea/
+
+# Virtual Environment
+venv/
+env/
+*.egg-info/
+*.egg/
+
+# Media files - if you store them locally, you may want to exclude the media directory
+media/
+
+# Static files - If you are generating static files, exclude them as well
+static/
+
+# Database files
+db.sqlite3
+
+# Logs
+*.log
+
+# YOLO model files (assuming large model files)
+best.pt
+*.pt
+
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints/
+
+# IDE files (if using any IDE like VSCode, PyCharm, etc.)
+.vscode/
+.idea/
+
+# MacOS specific
+.DS_Store
+
+# Windows specific
+Thumbs.db
+
+# Python pipenv files
+Pipfile.lock
