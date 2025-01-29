@@ -4,3 +4,5 @@ pillow
 numpy
 ultralytics
 django-cors-headers
+ffmpeg-python
+ffmpeg

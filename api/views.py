@@ -1,4 +1,5 @@
 from io import BytesIO
+import subprocess
 import tempfile
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -124,9 +125,9 @@ class YoloPredictBikeDetectionVideo(APIView):
             frame_height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
             fps = video_capture.get(cv2.CAP_PROP_FPS)
 
-            # Prepare for saving the video
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for output video
-            output_video_path = "/tmp/input_video.mp4"  # Output video path
+            # Prepare for saving the video (uncompressed for later re-encoding with ffmpeg)
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # type: ignore # Using 'mp4v' for temporary output
+            output_video_path = "/tmp/temporary_video.mp4"  # Temporary video path
             out_video = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
 
             while True:
@@ -137,7 +138,7 @@ class YoloPredictBikeDetectionVideo(APIView):
                 # Convert frame to PIL image for annotation
                 pil_image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
-                # Perform inference
+                # Perform inference (YOLO model)
                 results = model(pil_image)  # Perform inference
 
                 # Extract the results (boxes, labels, and confidence scores)
@@ -187,16 +188,32 @@ class YoloPredictBikeDetectionVideo(APIView):
             # Clean up the temporary file
             os.remove(temp_video_file.name)
 
+            # Re-encode the temporary video with H.264 using ffmpeg
+            final_output_path = f"/tmp/annotated_video.mp4"
+            subprocess.run([
+                'ffmpeg', 
+                '-i', output_video_path, 
+                '-vcodec', 'libx264', 
+                '-acodec', 'aac', 
+                '-strict', 'experimental', 
+                final_output_path
+            ], check=True)
+
+            # Clean up the temporary unencoded video
+            os.remove(output_video_path)
+
             # Create an InMemoryUploadedFile for the annotated video
-            with open(output_video_path, 'rb') as f:
+            with open(final_output_path, 'rb') as f:
                 video_content = ContentFile(f.read())
                 video_file = InMemoryUploadedFile(video_content, None, "annotated_video.mp4", 'video/mp4', video_content.size, None)
 
             # Save the video file to the model
             video_instance = GeneratedVideo.objects.create(video=video_file)
 
+            os.remove(final_output_path)
+
+            # Return the video URL
             return Response({'video_url': video_instance.video.url}, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
